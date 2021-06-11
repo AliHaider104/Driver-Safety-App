@@ -1,3 +1,5 @@
+import requests
+
 import cv2
 import numpy as np
 import dlib
@@ -8,6 +10,8 @@ from kivy.core.window import Window
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 import smtplib
+import time
+import haversine as hs
 
 Window.clearcolor = (0, 0, 0, 0)
 Window.size = (360, 600)
@@ -123,14 +127,27 @@ def AlertGeneration():
     recv5 = "muhammad.saad@sharkmea.com"
 
     password = "Erohal_2_FYP"
+    res = requests.get("https://ipinfo.io/what-is-my-ip")
+    data = res.json()
     Subject = "Driver Safety Alert"
-    Body = "We have found something about your driver that you must know."
+
+    city = data['city']
+    region = data['region']
+    country = data['country']
+    location = data['loc'].split(',')
+    lat1 = location[0]
+    long1 = location[1]
+
+    Body = "City : "+city+"\nRegion: "+region+"\nCountry: "+country+"\nLatitude: "+lat1+"\nLongitude: "+long1+"\n"
+    Body = Body +"\nWe have found that your driver is not driving per standards the above mentioned details " \
+                 "will help you to know more about the driver."
 
     message = "Subject:{}\n\n{}".format(Subject, Body)
 
     server = smtplib.SMTP('smtp.gmail.com', 587)
     server.starttls()
     server.login(sender_email, password)
+
 
     server.sendmail(sender_email, recv1, message)
     server.sendmail(sender_email, recv2, message)
@@ -206,6 +223,55 @@ def collisionDetection():
     cap.release()
     cv2.destroyAllWindows()
 
+# Code for Hard Brake Detection
+
+def HardBrakeDetection():
+
+    oldSpeed=0;
+    detected=0;
+
+    res = requests.get("https://ipinfo.io/what-is-my-ip")
+    data = res.json()
+    location = data['loc'].split(',')
+    lat1 = location[0]
+    long1 = location[1]
+
+    time.sleep(1)
+
+    res1 = requests.get("https://ipinfo.io/what-is-my-ip")
+    data1 = res1.json()
+    location1 = data1['loc'].split(',')
+    lat2 = location1[0]
+    long2 = location1[1]
+
+    loc1 = (float(lat1),float(long1))
+    loc2 = (float(lat2),float(long2))
+
+    distance = hs.haversine(loc1,loc2)
+    print("Distance is : ")
+    print(distance)
+
+    speed = distance/3600
+    print("Speed is : ")
+    print(speed)
+
+    if(abs(oldSpeed-speed)>20 & detected>2):
+        print("Over Speed Detected")
+
+    if(abs(oldSpeed-speed)>20):
+        detected=detected+1
+
+    else:
+        print("Over Speed not Detected")
+
+
+
+
+
+
+
+
+
 
 # Kivy Application
 
@@ -215,7 +281,7 @@ class MainApp(App):
         label = Label(text='EROHAL II', font_size='40sp', color=(1, 1, 1, 1), bold="true")
         btn1 = Button(text='Collision Detection', background_color=(0.25,.25,0.25,1),on_press=self.Print)
         btn2 = Button(text='Drowsiness Detection', background_color=(0.5,.5,0.5,1),on_press=self.F3)
-        btn3 = Button(text='Hard Brake Detection', background_color=(0.75,.75,0.75,1))
+        btn3 = Button(text='Hard Brake Detection', background_color=(0.75,.75,0.75,1), on_press=self.F4)
         btn4 = Button(text='Send Alert',on_press=self.F2)
         layout.add_widget(label)
         layout.add_widget(btn1)
@@ -233,5 +299,17 @@ class MainApp(App):
     def F3(self,obj):
         DrowsinessDetection()
 
+    def F4(self,obj):
+        HardBrakeDetection()
+
 
 MainApp().run()
+
+
+
+
+
+
+
+
+
